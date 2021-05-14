@@ -1,4 +1,4 @@
-var ws = new WebSocket('wss://' + location.host + '/one2many');
+var ws = new WebSocket('wss://' + location.host);
 var video;
 var webRtcPeer;
 var currentPresenter = false;
@@ -94,7 +94,7 @@ function presenter() {
 	currentPresenter = true;
 	if (!webRtcPeer) {
 		showSpinner(video);
-
+		
 		var options = {
 			localVideo: video,
 			onicecandidate: onIceCandidate
@@ -191,9 +191,25 @@ function dispose() {
 
 function sendMessage(message) {
 	var jsonMessage = JSON.stringify(message);
-	//console.log('Sending message: ' + jsonMessage);
-	ws.send(jsonMessage);
+	this.waitForConnection(function () {
+        ws.send(jsonMessage);
+        if (typeof callback !== 'undefined') {
+          callback();
+        }
+    }, 1000);
 }
+
+this.waitForConnection = function (callback, interval) {
+    if (ws.readyState === 1) {
+        callback();
+    } else {
+        var that = this;
+        // optional: implement backoff for interval here
+        setTimeout(function () {
+            that.waitForConnection(callback, interval);
+        }, interval);
+    }
+};
 
 function showSpinner() {
 	for (var i = 0; i < arguments.length; i++) {
@@ -213,7 +229,4 @@ function hideSpinner() {
 /**
  * Lightbox utility (to display media pipeline image in a modal dialog)
  */
-$(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
-	event.preventDefault();
-	$(this).ekkoLightbox();
-});
+
