@@ -60,7 +60,7 @@ wss.on('connection', function (ws) {
 
 
 	sessionId = nextUniqueId();
-	console.log('Connection ');
+	console.log("Connection ");
 	//console.info('Connection ');
 	
 	ws.on('message', function (_message) {
@@ -126,6 +126,7 @@ wss.on('connection', function (ws) {
 				break;
 			
 			case 'presenterStart':
+				
 				for (var i in viewersList) {
 					var viewer = viewersList[i];
 					if (viewer.ws) {
@@ -134,6 +135,11 @@ wss.on('connection', function (ws) {
 						}));
 					}
 				}
+				break;
+
+			case 'close':
+				console.log("Connection Closed " + message.sessionId);
+				viewersList.splice(message.sessionId, 1)
 				break;
 
 			default:

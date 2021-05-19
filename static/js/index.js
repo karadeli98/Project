@@ -8,17 +8,25 @@ var active = false;
 window.onload = function () {
 	
 	addViewer();
+	
 
 	video = document.getElementById('video');
 	document.getElementById('call').addEventListener('click', function () { presenter(); });
 	document.getElementById('call').addEventListener('mouseout', function () { tryStop(); });
 
-
 }
 
 window.onbeforeunload = function () {
+	var message = {
+		id : 'close',
+		sessionId: this.sessionId
+	}
+	sendMessage(message);
 	ws.close();
+	
 }
+
+
 
 ws.onmessage = function (message) {
 
