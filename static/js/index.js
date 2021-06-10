@@ -7,12 +7,10 @@ var active = false;
 
 window.onload = function () {
 	
-	addViewer();
-	
 
 	video = document.getElementById('video');
 	document.getElementById('call').addEventListener('click', function () { presenter(); });
-	document.getElementById('call').addEventListener('mouseout', function () { tryStop(); });
+	document.getElementById('terminate').addEventListener('click', function () { tryStop(); });
 
 }
 
@@ -84,7 +82,7 @@ function viewerResponse(message) {
 	if (message.response != 'accepted') {
 		var errorMsg = message.message ? message.message : 'Unknow error';
 		console.warn('Call not accepted for the following reason: ' + errorMsg);
-		dispose();
+		//dispose();
 	} else {
 		webRtcPeer.processAnswer(message.sdpAnswer);
 	}
@@ -105,8 +103,15 @@ function presenter() {
 		
 		var options = {
 			localVideo: video,
-			onicecandidate: onIceCandidate
-		}
+			onicecandidate: onIceCandidate,
+			configuration: { 
+				iceServers:[{ 
+					"url": "stun:stun.l.google.com:19302" ,
+					"url": "stun:stun2.l.google.com:19302"
+					
+			   }] 
+			}
+	}
 		
 		webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendonly(options, function (error) {
 			if (error) return onError(error);
@@ -139,7 +144,14 @@ function viewer() {
 
 		var options = {
 			remoteVideo: video,
-			onicecandidate: onIceCandidate
+			onicecandidate: onIceCandidate,
+			configuration: { 
+				iceServers:[{ 
+					"url": "stun:stun.l.google.com:19302" ,
+					"url": "stun:stun2.l.google.com:19302"
+
+			   }] 
+			}
 		}
 
 

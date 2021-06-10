@@ -11,14 +11,15 @@ var https = require('https');
 
 var argv = minimist(process.argv.slice(2), {
 	default: {
-		as_uri: 'https://localhost:8555/',
+		as_uri: 'https://localhost:8555',
 		ws_uri: 'ws://localhost:8888/kurento'
 	}
 });
 var options =
 {
 	key: fs.readFileSync('keys/server.key'),
-	cert: fs.readFileSync('keys/server.crt')
+	cert: fs.readFileSync('keys/server.crt'),
+	
 };
 
 var app = express();
@@ -33,6 +34,7 @@ var presenter = null;
 var viewers = [];
 var sessionId;
 var viewersList = [];
+presenterWS = null
 
 /*
  * Server startup
@@ -40,12 +42,15 @@ var viewersList = [];
 var asUrl = url.parse(argv.as_uri);
 var port = asUrl.port;
 var server = https.createServer(options, app).listen(port, function () {
+	
 
 	console.log('Open ' + url.format(asUrl));
 });
 
 var wss = new ws.Server({
-	server: server
+	server: server,
+	
+	
 });
 
 function nextUniqueId() {
@@ -61,7 +66,14 @@ wss.on('connection', function (ws) {
 
 	sessionId = nextUniqueId();
 	console.log("Connection ");
-	//console.info('Connection ');
+	viewersList[sessionId] = {
+		"sessionID": sessionId,
+		"ws": ws
+	}
+	ws.send(JSON.stringify({
+		id: 'setSessionId',
+		sessionID: sessionId
+	}))
 	
 	ws.on('message', function (_message) {
 		var message = JSON.parse(_message);
@@ -78,11 +90,13 @@ wss.on('connection', function (ws) {
 							message: error
 						}));
 					}
+					presenterWS = ws
 					ws.send(JSON.stringify({
 						id: 'presenterResponse',
 						response: 'accepted',
 						sdpAnswer: sdpAnswer
 					}));
+					console.log(message.sessionID)
 				});
 
 				break;
@@ -112,24 +126,14 @@ wss.on('connection', function (ws) {
 			case 'onIceCandidate':
 				onIceCandidate(message.sessionID, message.candidate);
 				break;
-
-			case 'addviewer':
-				
-				viewersList[sessionId] = {
-					"sessionID": sessionId,
-					"ws": ws
-				}
-				ws.send(JSON.stringify({
-					id: 'setSessionId',
-					sessionID: sessionId
-				}))
-				break;
 			
 			case 'presenterStart':
 				
 				for (var i in viewersList) {
 					var viewer = viewersList[i];
-					if (viewer.ws) {
+				
+					if (viewer.ws && viewer.ws != presenterWS) {
+						console.log(viewer.sessionID)
 						viewer.ws.send(JSON.stringify({
 							id: 'canStartViewer'
 						}));
@@ -267,7 +271,7 @@ function startPresenter(sessionId, ws, sdpOffer, callback) {
 function startViewer(sessionId, ws, sdpOffer, callback) {
 	console.info('start viewer');
 	//console.log('start viewer');
-	clearCandidatesQueue(sessionId);
+	//clearCandidatesQueue(sessionId);
 
 	if (presenter === null) {
 		stop(sessionId);
